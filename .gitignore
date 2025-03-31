@@ -1,0 +1,36 @@
+# Build artifacts
+/build/
+/dist/
+/out/
+*.o
+*.obj
+*.exe
+*.dll
+*.so
+*.dylib
+*.lib
+*.a
+
+# Dependency directories
+/node_modules/
+/vendor/
+/packages/
+
+# Logs and databases
+*.log
+*.sql
+*.sqlite
+
+# IDE and editor folders
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Cache and temporary files
+.cache/
+temp/
+tmp/
+*.tmp

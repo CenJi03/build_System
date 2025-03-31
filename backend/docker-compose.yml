@@ -1,0 +1,70 @@
+version: '3.8'
+
+services:
+  # Django Backend Service
+  backend:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: django-backend
+    volumes:
+      - ./backend:/app
+      - static_volume:/app/staticfiles
+    env_file:
+      - ./backend/.env.development
+    ports:
+      - "8000:8000"
+    depends_on:
+      - database
+    networks:
+      - app_network
+
+  # PostgreSQL Database Service
+  database:
+    image: postgres:15-alpine
+    container_name: django-postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=myprojectdb
+      - POSTGRES_USER=myprojectuser
+      - POSTGRES_PASSWORD=myprojectpassword
+    ports:
+      - "5432:5432"
+    networks:
+      - app_network
+
+  # Vue.js Frontend Service
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: vue-frontend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_API_URL=http://backend:8000/api
+    depends_on:
+      - backend
+    networks:
+      - app_network
+
+  # Redis for caching and session management
+  redis:
+    image: redis:7-alpine
+    container_name: redis-cache
+    ports:
+      - "6379:6379"
+    networks:
+      - app_network
+
+volumes:
+  postgres_data:
+  static_volume:
+
+networks:
+  app_network:
+    driver: bridge
