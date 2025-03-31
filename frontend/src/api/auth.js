@@ -3,27 +3,10 @@ import axios from './axios'
 export const authApi = {
   async login(credentials) {
     try {
-      // Create a login payload that works with the backend
-      let loginPayload = {
-        email: credentials.email,
-        password: credentials.password
-      }
-
-      // If using username or email as login identifier, modify accordingly
-      if (credentials.username) {
-        loginPayload.username = credentials.username
-      }
-
-      console.log('Sending login request')
-      const response = await axios.post('/auth/login/', loginPayload)
-      console.log('Login response status:', response.status)
+      const response = await axios.post('/auth/token/', credentials)
       return response.data
     } catch (error) {
-      console.error('Login request failed:', {
-        status: error.response?.status,
-        data: error.response?.data,
-        message: error.message
-      })
+      console.error('Login failed', error.response?.data)
       throw error
     }
   },

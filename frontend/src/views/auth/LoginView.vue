@@ -17,13 +17,33 @@
 
         <div class="form-group">
           <label for="password">Password</label>
-          <input 
-            type="password" 
-            id="password" 
-            v-model="password" 
-            required 
-            placeholder="Enter your password"
-          />
+          <div class="password-input-container">
+            <input 
+              :type="showPassword ? 'text' : 'password'" 
+              id="password" 
+              v-model="password" 
+              required 
+              placeholder="Enter your password"
+            />
+            <button 
+              type="button" 
+              class="toggle-password" 
+              @mousedown.prevent="showPassword = true"
+              @mouseup.prevent="showPassword = false"
+              @mouseleave="showPassword = false"
+              title="Hold to show password"
+            >
+              <svg v-if="showPassword" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="eye-icon">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+                <line x1="1" y1="1" x2="23" y2="23"></line>
+              </svg>
+              <svg v-else xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="eye-icon">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+            </button>
+          </div>
           <span v-if="passwordError" class="error">{{ passwordError }}</span>
         </div>
 
@@ -63,6 +83,7 @@ const errorMessage = ref('')
 const isLoading = ref(false)
 const debugInfo = ref('')
 const showDebugInfo = ref(false)
+const showPassword = ref(false)
 
 // Error state for specific fields
 const emailError = ref('')
@@ -117,27 +138,32 @@ async function handleLogin() {
 
   try {
     isLoading.value = true
-    await authStore.login({
+    console.log('Login attempt with credentials:', { 
+      email: email.value, 
+      passwordLength: password.value.length 
+    })
+    
+    const response = await authStore.login({
       email: email.value,
       password: password.value
     })
+    
+    console.log('Login response:', response)
     // Successfully logged in, router.push is handled in the store
   } catch (error) {
-    // Handle login errors
+    console.error('Full login error:', {
+      response: error.response,
+      status: error.response?.status,
+      data: error.response?.data,
+      message: error.message
+    })
+    
     errorMessage.value = error.response?.data?.detail 
       || error.response?.data?.error
-      || authStore.loginError
       || 'Login failed. Please check your credentials.'
       
     // Add debugging info
     debugInfo.value = `Status: ${error.response?.status || 'N/A'}, Code: ${error.code || 'Unknown'}`
-    
-    // Log details to console for debugging
-    console.error('Login error details:', { 
-      response: error.response?.data,
-      status: error.response?.status,
-      message: error.message
-    })
   } finally {
     isLoading.value = false
   }
@@ -235,6 +261,46 @@ button:disabled {
 
 .forgot-password a:hover {
   text-decoration: underline;
+}
+
+.password-input-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-input-container input {
+  flex-grow: 1;
+  padding-right: 40px; /* Make space for the toggle button */
+}
+
+.toggle-password {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  height: 100%;
+  margin: 0;
+  width: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+  font-size: 1rem;
+}
+
+.toggle-password:hover {
+  color: #333;
+}
+
+.toggle-password:focus {
+  outline: none;
+}
+
+.eye-icon {
+  color: #666;
 }
 
 .debug-info {

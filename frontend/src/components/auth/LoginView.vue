@@ -89,13 +89,27 @@ async function handleLogin() {
 
   try {
     isLoading.value = true
-    await authStore.login({
+    console.log('Login attempt with credentials:', { 
+      email: email.value, 
+      passwordLength: password.value.length 
+    })
+    
+    const response = await authStore.login({
       email: email.value,
       password: password.value
     })
+    
+    console.log('Login response:', response)
   } catch (error) {
-    // Handle login errors
+    console.error('Full login error:', {
+      response: error.response,
+      status: error.response?.status,
+      data: error.response?.data,
+      message: error.message
+    })
+    
     errorMessage.value = error.response?.data?.detail 
+      || error.response?.data?.error
       || 'Login failed. Please check your credentials.'
   } finally {
     isLoading.value = false
