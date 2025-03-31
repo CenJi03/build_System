@@ -18,6 +18,20 @@ class CustomTokenObtainPairView(TokenObtainPairView):
             
             # Extract credentials for tracking
             username = request.data.get('username', '')
+            email = request.data.get('email', '')
+            
+            # If email is provided but username isn't, try to find the user by email
+            if email and not username:
+                try:
+                    user = User.objects.get(email=email)
+                    # Create a copy of the request data
+                    modified_data = request.data.copy()
+                    # Add the username to the request data
+                    modified_data['username'] = user.username
+                    request._full_data = modified_data
+                    print(f"Found user by email: {user.username}")
+                except User.DoesNotExist:
+                    print(f"No user found with email: {email}")
             
             # Get the IP address
             x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
@@ -35,39 +49,43 @@ class CustomTokenObtainPairView(TokenObtainPairView):
             # If we get a 200 response, the login was successful
             if response.status_code == 200:
                 try:
-                    # Find the user that logged in
-                    user = User.objects.get(username=username)
+                    # Find the user that logged in - first try username, then email
+                    user = None
+                    if username:
+                        user = User.objects.get(username=username)
+                    elif email:
+                        user = User.objects.get(email=email)
                     
-                    # Update last login IP
-                    user.last_login_ip = ip
-                    user.save(update_fields=['last_login_ip'])
-                    
-                    # Log successful login
-                    LoginAttempt.objects.create(
-                        user=user,
-                        ip_address=ip,
-                        successful=True
-                    )
-                    
-                    # Log login activity
-                    UserActivity.objects.create(
-                        user=user,
-                        activity_type='login',
-                        ip_address=ip
-                    )
+                    if user:
+                        # Update last login IP
+                        user.last_login_ip = ip
+                        user.save(update_fields=['last_login_ip'])
+                        
+                        # Log successful login
+                        LoginAttempt.objects.create(
+                            user=user,
+                            ip_address=ip,
+                            successful=True
+                        )
+                        
+                        # Log login activity
+                        UserActivity.objects.create(
+                            user=user,
+                            activity_type='login',
+                            ip_address=ip
+                        )
+                        
+                        # Add user info to response
+                        user_data = {
+                            'id': str(user.id),
+                            'username': user.username,
+                            'email': user.email,
+                            'is_staff': user.is_staff,
+                            'is_verified': user.is_verified
+                        }
+                        response.data['user'] = user_data
                 except User.DoesNotExist:
                     pass  # Should not happen since login succeeded
-            else:
-                # Log failed login attempt
-                try:
-                    user = User.objects.filter(username=username).first()
-                    LoginAttempt.objects.create(
-                        user=user,  # May be None if username doesn't exist
-                        ip_address=ip,
-                        successful=False
-                    )
-                except Exception:
-                    pass  # Don't let logging errors affect the response
                     
             return response
         except Exception as e:

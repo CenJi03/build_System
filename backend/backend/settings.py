@@ -143,6 +143,9 @@ SIMPLE_JWT = {
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
     'SIGNING_KEY': os.environ.get('SIMPLE_JWT_SIGNING_KEY', SECRET_KEY),
+    'UPDATE_LAST_LOGIN': True,  # Add this to update the last_login field
+    'USER_ID_FIELD': 'id',      # Add this to specify the user ID field
+    'USER_ID_CLAIM': 'user_id', # Add this to specify the user ID claim
 }
 
 # Password validation

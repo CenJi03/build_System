@@ -3,10 +3,14 @@ import axios from './axios'
 export const authApi = {
   async login(credentials) {
     try {
+      console.log('Login attempt with:', credentials) // Log login attempt
+      
       const response = await axios.post('/auth/token/', credentials)
+      console.log('Login response:', response.data) // Log successful response
+      
       return response.data
     } catch (error) {
-      console.error('Login failed', error.response?.data)
+      console.error('Login error:', error.response?.data)
       throw error
     }
   },

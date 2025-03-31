@@ -88,8 +88,8 @@ router.beforeEach((to, from, next) => {
     return
   }
 
-  // Check if route should only be accessible to guests (not logged in)
-  if (to.meta.requiresGuest && authStore.isAuthenticated) {
+  // If trying to access login when already authenticated, redirect to dashboard
+  if (to.path === '/login' && authStore.isAuthenticated) {
     next('/dashboard')
     return
   }

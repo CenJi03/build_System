@@ -1,20 +1,15 @@
 <template>
   <div class="dashboard">
-    <header class="dashboard-header">
-      <h1>Welcome to Your Dashboard</h1>
-      <div class="user-info">
-        <p>Hello, {{ user?.username || 'User' }}!</p>
-        <button @click="logout" class="logout-btn">Logout</button>
-      </div>
-    </header>
-
-    <main class="dashboard-content">
+    <div class="welcome-banner">
+      <h1>Welcome to Your Dashboard, {{ username }}!</h1>
+      <p>You have successfully logged in.</p>
+    </div>
+    
+    <div class="dashboard-content">
       <section class="quick-stats">
         <div class="stat-card">
           <h3>Account Status</h3>
-          <p>
-            {{ user?.is_verified ? 'Verified' : 'Not Verified' }}
-          </p>
+          <p>{{ user?.is_verified ? 'Verified' : 'Not Verified' }}</p>
         </div>
         <div class="stat-card">
           <h3>Email</h3>
@@ -33,17 +28,24 @@
           </router-link>
         </div>
       </section>
-    </main>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { storeToRefs } from 'pinia'
 
 const authStore = useAuthStore()
 const { user } = storeToRefs(authStore)
+
+// Compute a proper greeting name (username, first name, or generic)
+const username = computed(() => {
+  if (user.value?.first_name) return user.value.first_name
+  if (user.value?.username) return user.value.username
+  return 'User'
+})
 
 onMounted(async () => {
   // Fetch user profile when dashboard is loaded
@@ -59,42 +61,52 @@ function logout() {
 
 <style scoped>
 .dashboard {
-  max-width: 800px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 2rem;
-  background-color: #f4f6f9;
-  min-height: 100vh;
 }
 
-.dashboard-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.welcome-banner {
+  background-color: #f0f7ff;
+  border-left: 4px solid #007bff;
+  padding: 1.5rem;
   margin-bottom: 2rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid #e0e4e8;
-}
-
-.user-info {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.logout-btn {
-  background-color: #dc3545;
-  color: white;
-  border: none;
-  padding: 0.5rem 1rem;
   border-radius: 4px;
-  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.welcome-banner h1 {
+  margin-bottom: 0.5rem;
+  color: #007bff;
+}
+
+.welcome-banner p {
+  margin: 0;
+  color: #555;
+}
+
+.dashboard-content {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+}
+
+@media (min-width: 768px) {
+  .dashboard-content {
+    grid-template-columns: 1fr 1fr;
+  }
 }
 
 .quick-stats {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 1rem;
-  margin-bottom: 2rem;
+}
+
+@media (min-width: 768px) {
+  .quick-stats {
+    grid-template-columns: 1fr 1fr;
+  }
 }
 
 .stat-card {
@@ -114,11 +126,14 @@ function logout() {
   border-radius: 8px;
   padding: 1.5rem;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  grid-column: 1 / -1;
 }
 
 .action-buttons {
   display: flex;
+  flex-wrap: wrap;
   gap: 1rem;
+  margin-top: 1rem;
 }
 
 .btn {
@@ -138,6 +153,5 @@ function logout() {
 .btn-admin {
   background-color: #6f42c1;
   color: white;
-  margin-left: 1rem;
 }
 </style>

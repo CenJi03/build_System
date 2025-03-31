@@ -1,5 +1,9 @@
 <template>
   <div id="app">
+    <div v-if="notification.show" class="notification" :class="notification.type">
+      {{ notification.message }}
+    </div>
+    
     <router-view v-slot="{ Component }">
       <transition name="fade" mode="out-in">
         <component :is="Component" />
@@ -9,52 +13,73 @@
 </template>
 
 <script setup>
-// No additional setup needed
+import { reactive } from 'vue'
+import { useAuthStore } from '@/stores/auth'
+
+// Create a simple notification system
+const notification = reactive({
+  show: false,
+  message: '',
+  type: 'success',
+  timeout: null
+})
+
+// Show notification
+function showNotification(message, type = 'success', duration = 3000) {
+  if (notification.timeout) {
+    clearTimeout(notification.timeout)
+  }
+  
+  notification.show = true
+  notification.message = message
+  notification.type = type
+  
+  notification.timeout = setTimeout(() => {
+    notification.show = false
+  }, duration)
+}
+
+// Listen for successful login
+const authStore = useAuthStore()
+authStore.$subscribe((mutation, state) => {
+  if (state.isAuthenticated && !mutation.oldState.isAuthenticated) {
+    showNotification(`Welcome ${state.user?.username || 'back'}! You've successfully logged in.`)
+  }
+})
 </script>
 
 <style>
-/* Global Reset and Base Styles */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+.notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 15px 20px;
+  border-radius: 4px;
+  color: white;
+  z-index: 1000;
+  animation: slide-in 0.3s ease-out;
 }
 
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 
-               Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-  line-height: 1.6;
-  color: #333;
+.notification.success {
+  background-color: #28a745;
 }
 
-/* Transition Animations */
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.2s ease;
+.notification.error {
+  background-color: #dc3545;
 }
 
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
+.notification.info {
+  background-color: #17a2b8;
 }
 
-/* Utility Classes */
-.text-center {
-  text-align: center;
-}
-
-.text-error {
-  color: #dc3545;
-}
-
-.text-success {
-  color: #28a745;
-}
-
-/* Responsive Base Styles */
-@media (max-width: 768px) {
-  body {
-    font-size: 14px;
+@keyframes slide-in {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
   }
 }
 </style>

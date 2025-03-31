@@ -117,8 +117,6 @@ async function handleLogin() {
       credentials.email = loginIdentifier.value
     } else {
       credentials.username = loginIdentifier.value
-      // Some APIs use email field for both - adjust as needed
-      credentials.email = loginIdentifier.value
     }
     
     await authStore.login(credentials)
