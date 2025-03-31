@@ -14,12 +14,6 @@ const routes = [
     meta: { requiresGuest: true }
   },
   {
-    path: '/register',
-    name: 'Register',
-    component: () => import('../views/auth/RegisterView.vue'),
-    meta: { requiresGuest: true }
-  },
-  {
     path: '/dashboard',
     name: 'Dashboard',
     component: () => import('../views/DashboardView.vue'),
@@ -30,6 +24,41 @@ const routes = [
     name: 'Profile',
     component: () => import('../views/ProfileView.vue'),
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/verify-email',
+    name: 'VerifyEmail',
+    component: () => import('../views/auth/VerifyEmailView.vue'),
+    props: route => ({ token: route.query.token })
+  },
+  {
+    path: '/reset-password',
+    name: 'ResetPassword',
+    component: () => import('../views/auth/ResetPasswordView.vue'),
+    props: route => ({ token: route.query.token })
+  },
+  {
+    path: '/setup-2fa',
+    name: 'Setup2FA',
+    component: () => import('../views/auth/Setup2FAView.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/delete-account',
+    name: 'DeleteAccount',
+    component: () => import('../views/auth/DeleteAccountView.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/account-deleted',
+    name: 'AccountDeleted',
+    component: () => import('../views/auth/AccountDeletedView.vue')
+  },
+  {
+    path: '/admin-signup',
+    name: 'AdminSignup',
+    component: () => import('../views/auth/AdminSignupView.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true }
   },
   {
     path: '/:pathMatch(.*)*',
@@ -46,14 +75,20 @@ const router = createRouter({
 // Navigation guards
 router.beforeEach((to, from, next) => {
   const authStore = useAuthStore()
-
-  // Check for routes that require authentication
+  
+  // Check if route requires auth and user is not authenticated
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
     next('/login')
     return
   }
 
-  // Check for routes that should only be accessible to guests (not logged in)
+  // Check if route requires admin permissions
+  if (to.meta.requiresAdmin && (!authStore.user || !authStore.user.is_staff)) {
+    next('/dashboard')
+    return
+  }
+
+  // Check if route should only be accessible to guests (not logged in)
   if (to.meta.requiresGuest && authStore.isAuthenticated) {
     next('/dashboard')
     return

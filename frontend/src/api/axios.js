@@ -1,54 +1,89 @@
 import axios from 'axios'
-import { useAuthStore } from '../stores/auth'
+import router from '@/router'
+import { useAuthStore } from '@/stores/auth'
 
-const axiosInstance = axios.create({
+// Create axios instance with base URL from environment variable
+const instance = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api',
   headers: {
-    'Content-Type': 'application/json',
+    'Content-Type': 'application/json'
   }
 })
 
-// Request interceptor for adding token
-axiosInstance.interceptors.request.use(
-  (config) => {
+// Add a request interceptor to include JWT token
+instance.interceptors.request.use(
+  config => {
     const authStore = useAuthStore()
-    const token = authStore.accessToken
-    if (token) {
-      config.headers['Authorization'] = `Bearer ${token}`
+    if (authStore.accessToken) {
+      config.headers['Authorization'] = `Bearer ${authStore.accessToken}`
     }
     return config
   },
-  (error) => {
-    return Promise.reject(error)
-  }
+  error => Promise.reject(error)
 )
 
-// Response interceptor for token refresh
-axiosInstance.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    const originalRequest = error.config
-    const authStore = useAuthStore()
+// Add a response interceptor to handle token refresh
+let isRefreshing = false
+let failedQueue = []
 
-    // If the error is due to unauthorized access and we haven't retried yet
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true
-
-      try {
-        // Attempt to refresh the token
-        await authStore.refreshToken()
-        
-        // Retry the original request with the new token
-        return axiosInstance(originalRequest)
-      } catch (refreshError) {
-        // If token refresh fails, log out the user
-        authStore.logout()
-        return Promise.reject(refreshError)
-      }
+const processQueue = (error, token = null) => {
+  failedQueue.forEach(prom => {
+    if (error) {
+      prom.reject(error)
+    } else {
+      prom.resolve(token)
     }
+  })
+  failedQueue = []
+}
 
-    return Promise.reject(error)
+instance.interceptors.response.use(
+  response => response,
+  async error => {
+    const originalRequest = error.config
+    
+    // If error is not 401 or request has already been retried, reject
+    if (error.response?.status !== 401 || originalRequest._retry) {
+      return Promise.reject(error)
+    }
+    
+    // Set retry flag to avoid infinite loops
+    originalRequest._retry = true
+    
+    // If token refresh is in progress, queue the request
+    if (isRefreshing) {
+      return new Promise((resolve, reject) => {
+        failedQueue.push({ resolve, reject })
+      })
+        .then(token => {
+          originalRequest.headers['Authorization'] = `Bearer ${token}`
+          return instance(originalRequest)
+        })
+        .catch(err => Promise.reject(err))
+    }
+    
+    isRefreshing = true
+    
+    try {
+      const authStore = useAuthStore()
+      const newToken = await authStore.refreshAccessToken()
+      
+      // Update authorization header with new token
+      originalRequest.headers['Authorization'] = `Bearer ${newToken}`
+      
+      // Process the queue with the new token
+      processQueue(null, newToken)
+      
+      return instance(originalRequest)
+    } catch (refreshError) {
+      // If token refresh fails, redirect to login
+      processQueue(refreshError, null)
+      router.push('/login')
+      return Promise.reject(refreshError)
+    } finally {
+      isRefreshing = false
+    }
   }
 )
 
-export default axiosInstance
+export default instance

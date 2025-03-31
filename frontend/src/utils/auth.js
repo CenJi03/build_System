@@ -1,12 +1,4 @@
-/**
- * Auth utility functions
- */
 
-/**
- * Parses and returns the payload of a JWT token
- * @param {string} token - JWT token
- * @returns {object|null} Decoded token payload or null if invalid
- */
 export function parseJwt(token) {
   try {
     const base64Url = token.split('.')[1];
@@ -23,11 +15,6 @@ export function parseJwt(token) {
   }
 }
 
-/**
- * Checks if a token is expired
- * @param {string} token - JWT token
- * @returns {boolean} True if token is expired or invalid, false otherwise
- */
 export function isTokenExpired(token) {
   const payload = parseJwt(token);
   if (!payload || !payload.exp) return true;
@@ -36,16 +23,4 @@ export function isTokenExpired(token) {
   const currentDate = new Date();
   
   return currentDate >= expiryDate;
-}
-
-/**
- * Gets token expiration date
- * @param {string} token - JWT token
- * @returns {Date|null} Expiration date or null if invalid
- */
-export function getTokenExpiryDate(token) {
-  const payload = parseJwt(token);
-  if (!payload || !payload.exp) return null;
-  
-  return new Date(payload.exp * 1000);
 }

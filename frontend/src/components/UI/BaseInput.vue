@@ -1,54 +1,25 @@
 <template>
   <div class="base-input">
-    <label v-if="label" :for="id">{{ label }}</label>
-    <div class="input-wrapper">
+    <label v-if="label" :for="id" class="base-input-label">{{ label }}</label>
+    <div class="input-container" :class="{ 'has-error': error }">
       <input
         :id="id"
-        :type="showPassword ? 'text' : type"
+        :type="type"
         :value="modelValue"
-        @input="$emit('update:modelValue', $event.target.value)"
-        :placeholder="placeholder"
-        :required="required"
         :disabled="disabled"
-        :class="{ 'input-error': error }"
+        :placeholder="placeholder"
+        @input="updateValue($event)"
+        class="base-input-field"
       />
-      <button 
-        v-if="type === 'password'" 
-        type="button" 
-        class="password-toggle" 
-        @mousedown="showPasswordStart"
-        @mouseup="showPasswordEnd"
-        @mouseleave="showPasswordEnd"
-        @touchstart="showPasswordStart"
-        @touchend="showPasswordEnd"
-        @touchcancel="showPasswordEnd"
-        :aria-label="showPassword ? 'Release to hide password' : 'Hold to show password'"
-      >
-        <svg 
-          class="eye-icon" 
-          xmlns="http://www.w3.org/2000/svg" 
-          width="16" 
-          height="16" 
-          viewBox="0 0 24 24" 
-          fill="none" 
-          stroke="currentColor" 
-          stroke-width="2" 
-          stroke-linecap="round" 
-          stroke-linejoin="round"
-        >
-          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-          <circle cx="12" cy="12" r="3"></circle>
-        </svg>
-      </button>
     </div>
-    <span v-if="error" class="error-message">{{ error }}</span>
+    <span v-if="error" class="base-input-error">{{ error }}</span>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { defineProps, defineEmits } from 'vue'
 
-defineProps({
+const props = defineProps({
   id: {
     type: String,
     required: true
@@ -57,113 +28,79 @@ defineProps({
     type: String,
     default: ''
   },
-  type: {
-    type: String,
-    default: 'text'
-  },
   modelValue: {
     type: [String, Number],
     default: ''
   },
-  placeholder: {
+  type: {
+    type: String,
+    default: 'text'
+  },
+  error: {
     type: String,
     default: ''
-  },
-  required: {
-    type: Boolean,
-    default: false
   },
   disabled: {
     type: Boolean,
     default: false
   },
-  error: {
+  placeholder: {
     type: String,
     default: ''
   }
-});
+})
 
-defineEmits(['update:modelValue']);
+const emit = defineEmits(['update:modelValue'])
 
-const showPassword = ref(false);
-
-// Show password while button is pressed
-function showPasswordStart() {
-  showPassword.value = true;
-}
-
-// Hide password when button is released
-function showPasswordEnd() {
-  showPassword.value = false;
+function updateValue(event) {
+  emit('update:modelValue', event.target.value)
 }
 </script>
 
 <style scoped>
 .base-input {
-  margin-bottom: 15px;
+  margin-bottom: 1rem;
 }
 
-label {
+.base-input-label {
   display: block;
-  margin-bottom: 5px;
-  font-weight: bold;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: #333;
 }
 
-.input-wrapper {
+.input-container {
   position: relative;
-  display: flex;
-  align-items: center;
 }
 
-input {
+.base-input-field {
   width: 100%;
-  padding: 8px;
+  padding: 0.75rem;
   border: 1px solid #ddd;
   border-radius: 4px;
-  transition: border-color 0.3s ease;
+  font-size: 1rem;
+  transition: border-color 0.2s ease;
 }
 
-input:focus {
+.base-input-field:focus {
   outline: none;
-  border-color: #007bff;
+  border-color: #4a90e2;
+  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
 }
 
-.input-error {
-  border-color: red;
-}
-
-.error-message {
-  color: red;
-  font-size: 0.8em;
-  margin-top: 5px;
-}
-
-input:disabled {
-  background-color: #f4f4f4;
+.base-input-field:disabled {
+  background-color: #f5f5f5;
   cursor: not-allowed;
 }
 
-.password-toggle {
-  position: absolute;
-  right: 8px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: #606060;
-  padding: 4px;
-  border-radius: 3px;
-  background-color: #f1f1f1;
-  transition: background-color 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.has-error .base-input-field {
+  border-color: #dc3545;
 }
 
-.password-toggle:active {
-  background-color: #e0e0e0;
-}
-
-.eye-icon {
-  pointer-events: none;
+.base-input-error {
+  display: block;
+  color: #dc3545;
+  font-size: 0.8rem;
+  margin-top: 0.25rem;
 }
 </style>

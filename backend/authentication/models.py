@@ -18,6 +18,13 @@ class CustomUser(AbstractUser):
     is_verified = models.BooleanField(default=False)
     last_login_ip = models.GenericIPAddressField(null=True, blank=True)
     
+    # Two-factor authentication field
+    two_factor_enabled = models.BooleanField(default=False)
+    
+    # Email verification and password reset tokens
+    email_verification_token = models.CharField(max_length=100, null=True, blank=True)
+    password_reset_token = models.CharField(max_length=100, null=True, blank=True)
+    
     # Optional additional fields
     bio = models.TextField(max_length=500, blank=True)
     birth_date = models.DateField(null=True, blank=True)
@@ -88,11 +95,17 @@ class UserActivity(models.Model):
         ('logout', 'User Logout'),
         ('profile_update', 'Profile Update'),
         ('password_change', 'Password Change'),
+        ('password_reset', 'Password Reset'),
+        ('password_reset_request', 'Password Reset Request'),
+        ('email_verification', 'Email Verification'),
         ('account_deletion', 'Account Deletion'),
+        ('registration', 'User Registration'),
+        ('2fa_enabled', 'Two-Factor Authentication Enabled'),
+        ('2fa_disabled', 'Two-Factor Authentication Disabled'),
     )
 
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
-    activity_type = models.CharField(max_length=20, choices=ACTIVITY_TYPES)
+    activity_type = models.CharField(max_length=25, choices=ACTIVITY_TYPES)
     timestamp = models.DateTimeField(auto_now_add=True)
     ip_address = models.GenericIPAddressField()
     additional_info = models.JSONField(null=True, blank=True)
@@ -103,3 +116,22 @@ class UserActivity(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.get_activity_type_display()}"
+
+class TOTPDevice(models.Model):
+    """
+    Model for storing TOTP (Time-based One-Time Password) devices
+    for two-factor authentication
+    """
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    name = models.CharField(max_length=64)
+    key = models.CharField(max_length=80)  # Base32 encoded key
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_used = models.DateTimeField(null=True, blank=True)
+    confirmed = models.BooleanField(default=False)
+
+    class Meta:
+        verbose_name = "TOTP Device"
+        verbose_name_plural = "TOTP Devices"
+
+    def __str__(self):
+        return f"{self.user.username}'s {self.name} device"

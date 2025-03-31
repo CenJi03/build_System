@@ -1,15 +1,15 @@
 <template>
   <div class="home-container">
     <h1>Welcome to Our Application</h1>
-    <p>Get started by logging in or creating an account.</p>
+    <p>Please log in using your administrator-provided credentials.</p>
     <div class="action-buttons">
       <router-link to="/login" class="btn btn-login">
         Log In
       </router-link>
-      <router-link to="/register" class="btn btn-register">
-        Register
-      </router-link>
     </div>
+    <p class="admin-note">
+      If you need an account, please contact your system administrator.
+    </p>
   </div>
 </template>
 
@@ -62,12 +62,15 @@ p {
   color: white;
 }
 
-.btn-register {
-  background-color: #28a745;
-  color: white;
-}
-
 .btn:hover {
   opacity: 0.9;
+}
+
+.admin-note {
+  margin-top: 2rem;
+  color: #666;
+  font-size: 0.9rem;
+  max-width: 400px;
+  text-align: center;
 }
 </style>

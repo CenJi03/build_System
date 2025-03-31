@@ -5,65 +5,81 @@ services:
   backend:
     build: 
       context: ./backend
-      dockerfile: Dockerfile
-    container_name: django-backend
+      dockerfile: Dockerfile.production
+    container_name: django-backend-prod
+    restart: always
     volumes:
-      - ./backend:/app
       - static_volume:/app/staticfiles
+      - media_volume:/app/media
     env_file:
-      - ./backend/.env.development
-    ports:
-      - "8000:8000"
+      - ./backend/.env.production
     depends_on:
       - database
+      - redis
     networks:
       - app_network
+    command: gunicorn backend.wsgi:application --bind 0.0.0.0:8000 --workers 4
 
   # PostgreSQL Database Service
   database:
     image: postgres:15-alpine
-    container_name: django-postgres
+    container_name: django-postgres-prod
+    restart: always
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    env_file:
+      - ./backend/.env.production
     environment:
-      - POSTGRES_DB=myprojectdb
-      - POSTGRES_USER=myprojectuser
-      - POSTGRES_PASSWORD=myprojectpassword
-    ports:
-      - "5432:5432"
+      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
     networks:
       - app_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  # Vue.js Frontend Service
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: vue-frontend
+  # Redis for caching and session management
+  redis:
+    image: redis:7-alpine
+    container_name: redis-cache-prod
+    restart: always
     volumes:
-      - ./frontend:/app
-      - /app/node_modules
+      - redis_data:/data
+    networks:
+      - app_network
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Nginx Web Server
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: nginx-prod
+    restart: always
     ports:
-      - "3000:3000"
-    environment:
-      - VITE_API_URL=http://backend:8000/api
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./nginx/ssl:/etc/nginx/ssl
+      - static_volume:/var/www/static
+      - media_volume:/var/www/media
     depends_on:
       - backend
     networks:
       - app_network
 
-  # Redis for caching and session management
-  redis:
-    image: redis:7-alpine
-    container_name: redis-cache
-    ports:
-      - "6379:6379"
-    networks:
-      - app_network
-
 volumes:
   postgres_data:
+  redis_data:
   static_volume:
+  media_volume:
 
 networks:
   app_network:

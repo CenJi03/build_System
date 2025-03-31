@@ -13,6 +13,7 @@ This is a full-stack web application demonstrating user authentication using Dja
 - Profile Management
 - Password Reset
 - Email Verification
+- Account Deletion
 - Security Features
   - Password Hashing
   - Rate Limiting
@@ -24,6 +25,7 @@ This is a full-stack web application demonstrating user authentication using Dja
 - State Management with Pinia
 - Protected Routes
 - Profile Editing
+- Account Management
 - Form Validation
 - Error Handling
 

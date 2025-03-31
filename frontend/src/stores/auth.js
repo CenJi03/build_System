@@ -8,29 +8,30 @@ export const useAuthStore = defineStore('auth', () => {
   const accessToken = ref(localStorage.getItem('access_token'))
   const refreshToken = ref(localStorage.getItem('refresh_token'))
   const isAuthenticated = ref(!!accessToken.value)
-
-  async function register(userData) {
-    try {
-      const response = await authApi.register(userData)
-      setTokens(response.access, response.refresh)
-      user.value = response.user
-      router.push('/dashboard')
-      return response
-    } catch (error) {
-      console.error('Registration failed', error)
-      throw error
-    }
-  }
+  const loginError = ref(null) // Add error tracking
 
   async function login(credentials) {
     try {
+      console.log('Login attempt with:', { email: credentials.email }) // Log login attempt (no password)
+      loginError.value = null // Reset previous errors
+      
       const response = await authApi.login(credentials)
+      console.log('Login response:', { success: !!response, hasUser: !!response.user, hasTokens: !!(response.access && response.refresh) }) 
+      
+      // Check if we have all required data before proceeding
+      if (!response.access || !response.refresh) {
+        throw new Error('Invalid response: Missing access or refresh tokens')
+      }
+
       setTokens(response.access, response.refresh)
-      user.value = response.user
+      user.value = response.user || await fetchUserProfile() // Fallback to fetching profile if not included
+      
+      // Ensure we navigate to dashboard after successful login
       router.push('/dashboard')
       return response
     } catch (error) {
       console.error('Login failed', error)
+      loginError.value = error.response?.data?.detail || 'Authentication failed. Please check your credentials.'
       throw error
     }
   }
@@ -67,14 +68,22 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.setItem('refresh_token', refresh)
   }
 
+  // Enhance token refresh to handle multiple calls
+  let refreshPromise = null
   async function refreshAccessToken() {
+    // If a refresh is already in progress, return that promise
+    if (refreshPromise) return refreshPromise
+    
     try {
-      const response = await authApi.refreshToken(refreshToken.value)
+      refreshPromise = authApi.refreshToken(refreshToken.value)
+      const response = await refreshPromise
       setTokens(response.access, refreshToken.value)
       return response.access
     } catch (error) {
       logout()
       throw error
+    } finally {
+      refreshPromise = null
     }
   }
 
@@ -91,16 +100,106 @@ export const useAuthStore = defineStore('auth', () => {
     router.push('/login')
   }
 
+  async function register(userData) {
+    try {
+      const response = await authApi.register(userData)
+      router.push('/verify-email')
+      return response
+    } catch (error) {
+      console.error('Registration failed', error)
+      throw error
+    }
+  }
+
+  async function verifyEmail(token) {
+    try {
+      const response = await authApi.verifyEmail(token)
+      router.push('/login')
+      return response
+    } catch (error) {
+      console.error('Email verification failed', error)
+      throw error
+    }
+  }
+
+  async function requestPasswordReset(email) {
+    try {
+      return await authApi.requestPasswordReset(email)
+    } catch (error) {
+      console.error('Password reset request failed', error)
+      throw error
+    }
+  }
+
+  async function resetPassword(token, newPassword) {
+    try {
+      const response = await authApi.resetPassword(token, newPassword)
+      router.push('/login')
+      return response
+    } catch (error) {
+      console.error('Password reset failed', error)
+      throw error
+    }
+  }
+
+  async function setup2FA() {
+    try {
+      return await authApi.setup2FA()
+    } catch (error) {
+      console.error('2FA setup failed', error)
+      throw error
+    }
+  }
+
+  async function verify2FA(code) {
+    try {
+      return await authApi.verify2FA(code)
+    } catch (error) {
+      console.error('2FA verification failed', error)
+      throw error
+    }
+  }
+
+  async function deleteAccount(password) {
+    try {
+      const response = await authApi.deleteAccount(password)
+      logout()
+      router.push('/account-deleted')
+      return response
+    } catch (error) {
+      console.error('Account deletion failed', error)
+      throw error
+    }
+  }
+
+  async function createAdminAccount(adminData) {
+    try {
+      const response = await authApi.createAdminAccount(adminData)
+      return response
+    } catch (error) {
+      console.error('Admin account creation failed', error)
+      throw error
+    }
+  }
+
   return {
     user,
     accessToken,
     refreshToken,
     isAuthenticated,
-    register,
+    loginError, // Expose the login error
     login,
     logout,
     fetchUserProfile,
     updateUserProfile,
-    refreshAccessToken
+    refreshAccessToken,
+    register,
+    verifyEmail,
+    requestPasswordReset,
+    resetPassword,
+    setup2FA,
+    verify2FA,
+    deleteAccount,
+    createAdminAccount
   }
 })

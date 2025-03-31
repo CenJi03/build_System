@@ -1,21 +1,79 @@
-# Backend Setup Guide
+# Secure Authentication System
+
+A robust, secure authentication and user management system built with Django REST Framework.
+
+## Features
+
+### User Authentication
+- JWT token-based authentication
+- Admin-only user registration
+- Email verification
+- Password reset functionality
+- Two-factor authentication using TOTP (Time-based One-Time Passwords)
+
+### Security
+- Rate limiting for login attempts and password resets
+- Password complexity enforcement
+- Login attempt tracking
+- User activity logging
+- IP address tracking for security monitoring
+
+### Admin Controls
+- Admin-only account deactivation
+- User activity monitoring
+- Login attempt monitoring
+- User verification status management
 
 ## Local Development Setup
 
+### Prerequisites
+- Python 3.11+
+- PostgreSQL 13+
+- Redis (optional, for caching)
+
+### 1. Clone Repository
+```bash
+git clone <repository-url>
+cd backend
+```
+
+### 2. Set Up Virtual Environment
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+```
+
+### 3. Install Dependencies
+```bash
+pip install -r requirements.txt
+```
+
+### 4. Configure Environment Variables
+Create a `.env.development` file in the project root based on the provided template.
+
+### 5. Set Up PostgreSQL Database
+```bash
+# Create database and user
+createdb myprojectdb
+createuser -P myprojectuser
+# Grant privileges
+psql -d myprojectdb -c "GRANT ALL PRIVILEGES ON DATABASE myprojectdb TO myprojectuser;"
+```
+
 ### 6. Run Migrations
 ```bash
-python backend/manage.py makemigrations
-python backend/manage.py migrate
+python manage.py makemigrations
+python manage.py migrate
 ```
 
 ### 7. Create Superuser
 ```bash
-python backend/manage.py createsuperuser
+python manage.py createsuperuser
 ```
 
 ### 8. Run Development Server
 ```bash
-python backend/manage.py runserver
+python manage.py runserver
 ```
 
 ## Docker Development Setup
@@ -29,10 +87,17 @@ python backend/manage.py runserver
 docker-compose up --build
 ```
 
-### 3. Accessing Services
+### 3. Access Services
 - Backend API: http://localhost:8000
 - Frontend: http://localhost:3000
 - Postgres Database: localhost:5432
+- Redis Cache: localhost:6379
+
+## API Documentation
+
+An interactive API documentation is available at:
+- Swagger UI: `/api/schema/swagger-ui/`
+- ReDoc: `/api/schema/redoc/`
 
 ## Testing
 
@@ -40,6 +105,12 @@ docker-compose up --build
 ```bash
 # In the backend directory
 pytest
+```
+
+### Check Test Coverage
+```bash
+pytest --cov=. --cov-report=html
+# View coverage report in htmlcov/index.html
 ```
 
 ### Code Quality Checks
@@ -54,44 +125,51 @@ black .
 isort .
 ```
 
-## Security Features
+## Production Deployment
 
-### Authentication
-- JWT Token Authentication
-- Two-Factor Authentication Support
-- Email Verification
-- Password Complexity Rules
+### 1. Create `.env.production` File
+Create a `.env.production` file based on the template provided in the repository. Update all values with secure credentials.
 
-### Logging and Monitoring
-- User Activity Logging
-- Login Attempt Tracking
-- Suspicious Activity Alerts
+### 2. Security Settings
+Ensure the following settings are configured for production:
+- `DEBUG=False`
+- Set secure `SECRET_KEY` and `SIMPLE_JWT_SIGNING_KEY`
+- Configure HTTPS settings
+- Set proper `ALLOWED_HOSTS` and `CORS_ALLOWED_ORIGINS`
 
-## Deployment Considerations
-- Set `DEBUG=False` in production
-- Use a strong, unique `SECRET_KEY`
-- Configure proper CORS settings
-- Set up HTTPS
-- Use environment-specific settings
+### 3. Email Configuration
+Configure a production email backend like SendGrid or Amazon SES:
+```
+EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
+EMAIL_HOST=smtp.sendgrid.net
+EMAIL_PORT=587
+EMAIL_USE_TLS=True
+EMAIL_HOST_USER=apikey
+EMAIL_HOST_PASSWORD=your_sendgrid_api_key
+```
 
-## Technologies Used
-- Django 4.2
-- Django REST Framework
-- Simple JWT
-- PostgreSQL
-- Docker
+### 4. Build and Deploy Docker Images
+```bash
+docker-compose -f docker-compose.production.yml up -d
+```
+
+## Security Considerations
+
+- **JWT Tokens**: Configure appropriate lifetimes for access and refresh tokens
+- **CORS**: Only allow trusted domains in `CORS_ALLOWED_ORIGINS`
+- **Password Policies**: Enforce strong password requirements
+- **Rate Limiting**: Protect against brute force attacks
+- **Two-Factor Auth**: Encourage or require 2FA for sensitive operations
 
 ## Contributing
+
 1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Run tests to ensure they pass
+4. Commit your changes (`git commit -m 'Add some amazing feature'`)
+5. Push to the branch (`git push origin feature/amazing-feature`)
+6. Open a Pull Request
 
 ## License
+
 Distributed under the MIT License. See `LICENSE` for more information.
-
-## Contact
-Your Name - your.email@example.com
-
-Project Link: [https://github.com/yourusername/your-project](https://github.com/yourusername/your-project)

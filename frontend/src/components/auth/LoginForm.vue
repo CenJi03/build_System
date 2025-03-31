@@ -34,8 +34,12 @@
       {{ isLoading ? 'Logging in...' : 'Login' }}
     </base-button>
 
-    <p v-if="errorMessage" class="error-message">
+    <div v-if="errorMessage" class="error-message">
       {{ errorMessage }}
+    </div>
+
+    <p class="forgot-password-link">
+      <router-link to="/reset-password">Forgot your password?</router-link>
     </p>
 
     <p class="signup-link">
@@ -46,7 +50,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
 import { validators, validate } from '@/utils/validators'
@@ -58,6 +62,7 @@ const loginIdentifier = ref('')
 const password = ref('')
 const errorMessage = ref('')
 const isLoading = ref(false)
+const attemptCount = ref(0)
 
 // Error state for specific fields
 const loginIdentifierError = ref('')
@@ -74,6 +79,9 @@ async function handleLogin() {
   passwordError.value = ''
   errorMessage.value = ''
 
+  // Track login attempts
+  attemptCount.value++
+  
   // Validate login identifier
   const loginIdentifierValidation = validate(
     loginIdentifier.value,
@@ -94,16 +102,42 @@ async function handleLogin() {
     return
   }
 
+  // Determine if the identifier is an email or username
+  const isEmail = loginIdentifier.value.includes('@')
+  
   try {
     isLoading.value = true
-    await authStore.login({
-      email: loginIdentifier.value, // We're using email field but sending username or email
+    
+    // Prepare credentials based on identifier type
+    const credentials = {
       password: password.value
-    })
+    }
+    
+    if (isEmail) {
+      credentials.email = loginIdentifier.value
+    } else {
+      credentials.username = loginIdentifier.value
+      // Some APIs use email field for both - adjust as needed
+      credentials.email = loginIdentifier.value
+    }
+    
+    await authStore.login(credentials)
+    console.log('Login successful, navigation should happen automatically')
+    
   } catch (error) {
-    // Handle login errors
-    errorMessage.value = error.response?.data?.detail || error.response?.data?.error 
-      || 'Login failed. Please check your credentials.'
+    console.error('Login failed in component:', error)
+    
+    // Handle login errors with more detailed messages
+    if (attemptCount.value >= 3) {
+      errorMessage.value = 'Multiple login failures. Please verify your credentials or reset your password.'
+    } else if (error.response?.status === 401) {
+      errorMessage.value = 'Invalid credentials. Please check your email/username and password.'
+    } else if (error.response?.status === 403) {
+      errorMessage.value = 'Your account is not verified or has been deactivated.'
+    } else {
+      errorMessage.value = error.response?.data?.detail || error.response?.data?.error 
+        || 'Login failed. Please check your credentials.'
+    }
   } finally {
     isLoading.value = false
   }
@@ -138,6 +172,21 @@ async function handleLogin() {
 }
 
 .signup-link a:hover {
+  text-decoration: underline;
+}
+
+.forgot-password-link {
+  text-align: right;
+  margin: 0.5rem 0;
+}
+
+.forgot-password-link a {
+  color: #007bff;
+  font-size: 0.9rem;
+  text-decoration: none;
+}
+
+.forgot-password-link a:hover {
   text-decoration: underline;
 }
 </style>
